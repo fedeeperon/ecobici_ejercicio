@@ -104,15 +104,92 @@ Otras observaciones de recorridos:
 - **ZIP con más de un archivo:** `elegir_csv_del_zip` exige que haya un único CSV y, si no,
   corta con un error que muestra el contenido. Hoy los tres ZIP tienen un solo archivo.
 
-## Puntos a resolver antes de la Tarea 3 (pendientes de confirmación)
+## Tarea 3: capa Silver
 
-1. **2016 no trae id de viaje.** El esquema canónico pide `id_viaje` y la regla 5 detecta
-   duplicados por ese id.
-2. **2016 no trae id de usuario.** `id_usuario` puede ser nulo según el esquema, así que se
-   cargaría como nulo.
-3. **Duración de 2016:** como no coincide con fin − inicio, se calcularía desde las fechas
-   (el enunciado lo prevé cuando la duración "viene en otra unidad").
-4. **Sufijo `BAEcobici` en 2019 (ids de viaje, estación y usuario) y `.0` en ids de usuario de
-   2024:** hay que quitarlos para que los ids sean numéricos y crucen con la tabla de usuarios.
-5. **Prefijo numérico en nombres de estación de 2019 y 2024 (`005 - Plaza Italia`):** 2016 no
-   lo tiene. Hay que decidir si se quita o no al normalizar.
+### Mapeo de columnas de viajes (`MAPEO_VIAJES` en `src/silver.py`)
+
+| Columna canónica | 2016 | 2019 | 2024 |
+|---|---|---|---|
+| `id_viaje` | *(no viene: se genera)* | `Id_recorrido` (sin `BAEcobici`) | `id_recorrido` |
+| `fecha_hora_inicio` | `fecha_origen_recorrido` | `fecha_origen_recorrido` | `fecha_origen_recorrido` |
+| `fecha_hora_fin` | `fecha_destino_recorrido` | `fecha_destino_recorrido` | `fecha_destino_recorrido` |
+| `duracion_seg` | *(se calcula: fin − inicio)* | `duracion_recorrido` (sin la coma de miles) | `duracion_recorrido` |
+| `id_estacion_origen` | `id_estacion_origen` | `id_estacion_origen` (sin `BAEcobici`) | `id_estacion_origen` |
+| `nombre_estacion_origen` | `nombre_estacion_origen` | `nombre_estacion_origen` | `nombre_estacion_origen` |
+| `id_estacion_destino` | `id_estacion_destino` | `id_estacion_destino` (sin `BAEcobici`) | `id_estacion_destino` |
+| `nombre_estacion_destino` | `nombre_estacion_destino` | `nombre_estacion_destino` | `nombre_estacion_destino` |
+| `id_usuario` | *(no viene: nulo)* | `id_usuario` (sin `BAEcobici`) | `id_usuario` (sin `.0`) |
+| `anio_fuente` | 2016 | 2019 | 2024 |
+
+Formato de fecha de los tres años: `%Y-%m-%d %H:%M:%S`.
+
+### Mapeo de columnas de usuarios (`MAPEO_USUARIOS`)
+
+| Columna canónica | 2016 | 2019 | 2024 |
+|---|---|---|---|
+| `id_usuario` | `id_usuario` | `ID_usuario` | `id_usuario` |
+| `genero` | `genero_usuario` | `genero_usuario` | `genero_usuario` |
+| `edad` | `edad_usuario` | `edad_usuario` | `edad_usuario` |
+| `fecha_alta` | `fecha_alta` + `hora_alta`, formato `%d-%m-%y %I:%M:%S %p` | `fecha_alta` + `hora_alta`, `%Y-%m-%d %H:%M:%S` | ídem 2019 |
+
+### Mapeo de género (`MAPEO_GENERO`)
+
+Los valores se comparan en mayúsculas y sin espacios en las puntas.
+
+| Valor original | Silver | Visto en |
+|---|---|---|
+| `F`, `FEMALE` (y `FEMENINO`, por las dudas) | `F` | 2016 (`F`), 2019 y 2024 (`FEMALE`) |
+| `M`, `MALE` (y `MASCULINO`) | `M` | 2016 (`M`), 2019 y 2024 (`MALE`) |
+| `OTHER` (y `OTRO`, `X`) | `OTRO` | 2019, 2024 |
+| nulo o cualquier otro valor | `DESCONOCIDO` | 2019 (857 nulos) |
+
+### Decisiones
+
+- **`id_viaje` de 2016 sintético:** `2016-000001`, `2016-000002`, …, según la posición de la
+  fila en bronze. 2016 no trae id. Es determinístico (idempotente) y no puede chocar con los
+  ids numéricos de 2019 (10 a 6.875.895) ni de 2024 (20.180.969 a 24.503.283), que tampoco se
+  pisan entre sí. 2016 no tiene filas idénticas repetidas, así que no se pierde ningún
+  duplicado real.
+- **`id_usuario` de 2016 nulo:** el archivo no lo trae, y el esquema lo permite.
+- **`duracion_seg` de 2016 calculada como fin − inicio:** la duración informada siempre es
+  menor que la diferencia de fechas, por una cantidad variable (mediana 1.557 s contra
+  1.876 s), y no está documentado qué mide. En 2019 coincide con fin − inicio en el 100 % de
+  los casos y en 2024 en todos salvo 8 filas, así que ahí se usa la informada.
+- **Sufijos de los ids:** se quita `BAEcobici` (2019) y `.0` (ids de usuario de 2024) para
+  que los ids sean numéricos y crucen con la tabla de usuarios, que no tiene esos sufijos.
+- **Prefijo numérico en nombres de estación:** además de la normalización de la consigna, se
+  quita el número inicial (`005 - Plaza Italia` → `PLAZA ITALIA`). 2016 no lo tiene y no
+  coincide con el id de estación (solo en el 38 % de los casos en 2019 y el 31 % en 2024).
+  Algunas estaciones de 2019 se llaman solo con un número en el origen (`175`, `234`,
+  `359 PB`): no tienen guion y quedan así.
+- **Acentos:** se conservan (`ZOOLÓGICO`). La consigna no pide quitarlos.
+- **Textos `NA` de bronze:** pasan a nulo al convertir a número (`errors="coerce"`).
+- **Edades fuera de 16–90 → nulo** (lo pide la consigna): 46 en 2019 y 94 en 2024. Con las
+  765 `NA` de 2019, quedan 811 edades nulas en 2019 y 94 en 2024.
+- **Regla DUPLICADO:** se aplica a todo el conjunto, en el orden 2016 → 2019 → 2024 y en el
+  orden de las filas en bronze. La primera aparición queda en silver y las siguientes van a
+  cuarentena. El único caso (2024, id `22425357`) son dos filas idénticas en todas las
+  columnas.
+- **Usuarios descartados a `silver/usuarios_cuarentena`** (con `motivo` `ID_NULO` o
+  `DUPLICADO`): la consigna pide quedarse con uno solo, pero así el registro descartado no se
+  pierde y los usuarios también concilian con bronze. Si hay empate de `fecha_alta`, queda
+  el del año más reciente.
+- **Los 5.231 usuarios repetidos entre 2016 y 2019 son personas distintas:** el género
+  coincide solo en el 39 % y las edades no son coherentes, así que la fuente reutilizó ids.
+  Se aplica igual la regla de la consigna y queda el de 2019, que es el más reciente. Es el
+  que corresponde para los cruces, porque los viajes de 2016 no traen id de usuario.
+- **Los archivos de usuarios solo traen las altas de ese año** (`fecha_alta` siempre está
+  dentro del año del archivo). Por eso solo el 24 % de los viajes de 2019 y el 32 % de los de
+  2024 cruzan con un usuario del mismo año. Se va a medir en la Tarea 4.
+- **Salida:** `data/silver/<tabla>/data.parquet` para `viajes`, `viajes_cuarentena`,
+  `usuarios` y `usuarios_cuarentena`. Se escribe a un archivo temporal y después se reemplaza,
+  como en bronze. Se llama a `validar_esquema()` antes de cada escritura.
+
+### Observaciones de los datos (no son decisiones)
+
+- 2016: las 93.555 filas sin `fecha_destino_recorrido` son las últimas del archivo
+  (desde la fila 503.253) y van todas a cuarentena por `FECHA_INVALIDA` (15,7 % del año).
+- 2016: las duraciones válidas van de 600 s a 10.797 s. Parece que la fuente solo publicó
+  viajes de entre 10 minutos y 3 horas.
+- 2019: el primer viaje (09/02) duró 10 días y va a cuarentena, así que los viajes válidos
+  empiezan el 17/02.
