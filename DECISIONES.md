@@ -33,7 +33,7 @@ filas podían no representar al resto, también se revisaron en el archivo compl
 | Nombre del archivo dentro del ZIP | `recorridos-realizados-2016.csv` (único archivo) | `trips_2019.csv` (único archivo) | `badata_ecobici_recorridos_realizados_2024.csv` (único archivo) |
 | Separador de columnas | `,` | `,` (todos los campos entre comillas `"`) | `,` |
 | Codificación | UTF-8 | UTF-8 | UTF-8 **con BOM** (se lee con `encoding="utf-8-sig"`) |
-| Nombres de las columnas (15 / 18 / 17) | `periodo, genero_usuario, fecha_origen_recorrido, id_estacion_origen, nombre_estacion_origen, long_estacion_origen, lat_estacion_origen, domicilio_estacion_origen, duracion_recorrido, fecha_destino_recorrido, id_estacion_destino, nombre_estacion_destino, long_estacion_destino, lat_estacion_destino, domicilio_estacion_destino` | `""` (índice sin nombre, pandas lo lee como `Unnamed: 0`), `Id_recorrido, duracion_recorrido, fecha_origen_recorrido, id_estacion_origen, nombre_estacion_origen, direccion_estacion_origen, long_estacion_origen, lat_estacion_origen, fecha_destino_recorrido, id_estacion_destino, nombre_estacion_destino, direccion_estacion_destino, long_estacion_destino, lat_estacion_destino, id_usuario, modelo_bicicleta, g�nero` | `id_recorrido, duracion_recorrido, fecha_origen_recorrido, id_estacion_origen, nombre_estacion_origen, direccion_estacion_origen, long_estacion_origen, lat_estacion_origen, fecha_destino_recorrido, id_estacion_destino, nombre_estacion_destino, direccion_estacion_destino, long_estacion_destino, lat_estacion_destino, id_usuario, modelo_bicicleta, genero` |
+| Nombres de las columnas (15 / 18 / 17) | `periodo, genero_usuario, fecha_origen_recorrido, id_estacion_origen, nombre_estacion_origen, long_estacion_origen, lat_estacion_origen, domicilio_estacion_origen, duracion_recorrido, fecha_destino_recorrido, id_estacion_destino, nombre_estacion_destino, long_estacion_destino, lat_estacion_destino, domicilio_estacion_destino` | `""` (índice sin nombre, pandas lo lee como `Unnamed: 0`), `Id_recorrido, duracion_recorrido, fecha_origen_recorrido, id_estacion_origen, nombre_estacion_origen, direccion_estacion_origen, long_estacion_origen, lat_estacion_origen, fecha_destino_recorrido, id_estacion_destino, nombre_estacion_destino, direccion_estacion_destino, long_estacion_destino, lat_estacion_destino, id_usuario, modelo_bicicleta, género` | `id_recorrido, duracion_recorrido, fecha_origen_recorrido, id_estacion_origen, nombre_estacion_origen, direccion_estacion_origen, long_estacion_origen, lat_estacion_origen, fecha_destino_recorrido, id_estacion_destino, nombre_estacion_destino, direccion_estacion_destino, long_estacion_destino, lat_estacion_destino, id_usuario, modelo_bicicleta, genero` |
 | Formato de fecha y hora | `AAAA-MM-DD HH:MM:SS` | `AAAA-MM-DD HH:MM:SS` | `AAAA-MM-DD HH:MM:SS` |
 | ¿Trae la duración? ¿En qué unidad? | Sí, como texto de timedelta (`0 days 00:16:29.000000000`). **No coincide con fin − inicio** en el 99,9 % de los casos comparables | Sí, en segundos, con coma como separador de miles (`2,814` = 2814 s). Coincide con fin − inicio en el 100 % de los casos | Sí, en segundos enteros (`568`). Coincide con fin − inicio salvo en 8 filas |
 | ¿Trae id de usuario? | **No** (solo `genero_usuario`) | Sí, con sufijo de texto: `6243BAEcobici` | Sí, como número con decimal: `992557.0` |
@@ -41,7 +41,7 @@ filas podían no representar al resto, también se revisaron en el archivo compl
 | Formato de id de estación | Numérico (`11`) | Con sufijo: `5BAEcobici` | Numérico (`513`) |
 | Formato de nombre de estación | Sin número (`Tribunales`) | Con número adelante: `005 - Plaza Italia` | Con número adelante: `308 - SAN MARTIN II`; mezcla de mayúsculas y minúsculas |
 | Rango de fechas de inicio | 2016-01-01 → 2016-12-31 | **2019-02-09** → 2019-12-31 (no hay viajes de enero ni de principios de febrero) | 2024-01-01 → 2024-12-31 |
-| Nulos relevantes | `fecha_destino_recorrido`: 93.555 | Estación destino (id, nombre, etc.): 1.760; `g�nero`: 93.571 | `fecha_destino_recorrido`: 3.379; `genero`: 11.946 |
+| Nulos relevantes | `fecha_destino_recorrido`: 93.555 | Estación destino (id, nombre, etc.): 1.760; `género`: 93.571 | `fecha_destino_recorrido`: 3.379; `genero`: 11.946 |
 | Ids de viaje repetidos dentro del año | No aplica (no hay id) | 0 | 1 |
 | Cantidad total de filas | **596.807** | **6.217.004** | **3.559.284** |
 
@@ -50,12 +50,11 @@ Otras observaciones de recorridos:
 - **2019, coordenadas corridas:** en `long_estacion_destino` viene la latitud y en
   `lat_estacion_destino` viene el par `"lat,long"`. No afecta al esquema canónico, que no usa
   coordenadas.
-- **2019, nombre de columna dañado:** la columna de género se llama `g�nero`. El carácter
-  `�` (U+FFFD) ya viene así en el archivo, que es UTF-8 válido.
-- **Caracteres dañados en el origen:** en los tres años hay nombres y direcciones con `�` en
-  lugar de letras acentuadas (`S�nchez de Loria`, `Pe�a`). Es un error de la fuente, no de la
-  lectura: todos los archivos se decodifican como UTF-8 sin errores. Bronze los conserva tal
-  cual.
+- **2019, columna de género con tilde:** se llama `género` (en 2024 es `genero`, sin tilde).
+- **Acentos:** los tres archivos son UTF-8 válido y los acentos están bien (`Sánchez de Loria`,
+  `Peña`). *Corrección hecha en la Tarea 2:* una versión anterior de esta tabla decía que había
+  caracteres `�` en los datos; era un problema de la consola de Windows al mostrarlos. Al
+  revisar bronze no apareció ningún `�` en ninguna columna de los 6 archivos.
 - **2016, columna `periodo`:** siempre vale `2016`.
 - Ningún ZIP contiene más de un archivo, así que no hubo que elegir.
 - En los tres archivos, la cantidad de filas de pandas es igual a la de líneas físicas menos el
@@ -77,6 +76,33 @@ Otras observaciones de recorridos:
 | Edad | 16 a 88, sin nulos | 0 a 935; 765 nulos; 31 menores de 16 y 15 mayores de 90 | 4 a 2021; sin nulos; 9 menores de 16 y 85 mayores de 90 |
 | Ids nulos / duplicados | 0 / 0 | 0 / 0 | 0 / 0 |
 | Cantidad total de filas | **39.481** | **83.600** | **197.077** |
+
+## Tarea 2: capa Bronze
+
+- **Entorno:** pandas fijado en `2.2.3` (no 3.x), porque pandas 3 cambia el tipo de texto
+  por defecto y la resolución de las fechas, y el enunciado espera `string` y
+  `datetime64[ns]`. Se usa un entorno virtual `.venv` para no tocar el Python del sistema
+  (allí pyarrow 26 no funcionaba con NumPy 1.26).
+- **Codificación `utf-8-sig` para todos los archivos:** quita el BOM de los de 2024 (si no,
+  la primera columna se llamaría `﻿id_recorrido`) y no cambia nada en los que no lo tienen.
+  El BOM es un detalle de la codificación, no parte del nombre de la columna.
+- **Solo el campo vacío se lee como nulo** (`keep_default_na=False, na_values=[""]`): por
+  defecto pandas también convierte en nulo textos como `NA` o `null`, y eso ya sería
+  limpieza. Hay dos columnas con la palabra `NA` escrita, que bronze conserva como texto:
+  `edad_usuario` de usuarios 2019 (765 filas) y `long_estacion_destino` de recorridos 2019
+  (1.760, las mismas filas sin estación destino). Silver las va a pasar a nulo.
+- **Columna `Unnamed: 0` en recorridos 2019:** el encabezado original de esa columna está
+  vacío (`""`) y pandas le pone ese nombre al leerla. Se deja así en bronze.
+- **Lectura y escritura por partes** (`chunksize=500_000` + `pyarrow.ParquetWriter`): evita
+  cargar los 6,2 millones de filas de 2019 en memoria de una vez. Todas las columnas se
+  guardan con tipo `string` de Arrow.
+- **Idempotencia:** cada año se escribe en un `data.parquet.tmp` que al terminar reemplaza
+  al `data.parquet` (`os.replace`). Cada corrida sobrescribe todo y nunca queda un archivo a
+  medio escribir.
+- **`_fecha_ingesta`:** una sola marca de tiempo por corrida (ISO, en segundos), la misma
+  para los 6 archivos, para que identifique una ingesta completa.
+- **ZIP con más de un archivo:** `elegir_csv_del_zip` exige que haya un único CSV y, si no,
+  corta con un error que muestra el contenido. Hoy los tres ZIP tienen un solo archivo.
 
 ## Puntos a resolver antes de la Tarea 3 (pendientes de confirmación)
 

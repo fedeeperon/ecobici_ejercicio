@@ -1,5 +1,6 @@
 # Datos: pesados y regenerables con `python main.py`
 data/raw/
+DatosEcobici.zip
 data/bronze/
 data/silver/
 # Tablas de gold (sí se versionan los reportes CSV)
