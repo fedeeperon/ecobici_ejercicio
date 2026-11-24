@@ -1,0 +1,20 @@
+# Datos: pesados y regenerables con `python main.py`
+data/raw/
+data/bronze/
+data/silver/
+# Tablas de gold (sí se versionan los reportes CSV)
+data/gold/*
+!data/gold/reportes/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Editor / SO
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
