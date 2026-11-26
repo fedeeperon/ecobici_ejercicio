@@ -36,7 +36,7 @@ data/raw/
 python main.py
 ```
 
-Genera `data/bronze/` y `data/silver/` (tarda unos 5 minutos). Se puede ejecutar todas las veces que se quiera: cada corrida
+Genera `data/bronze/`, `data/silver/` y `data/gold/` (tarda unos 5 minutos). Se puede ejecutar todas las veces que se quiera: cada corrida
 sobrescribe el resultado anterior.
 
 Las decisiones tomadas están en `DECISIONES.md`.

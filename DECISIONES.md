@@ -193,3 +193,50 @@ Los valores se comparan en mayúsculas y sin espacios en las puntas.
   viajes de entre 10 minutos y 3 horas.
 - 2019: el primer viaje (09/02) duró 10 días y va a cuarentena, así que los viajes válidos
   empiezan el 17/02.
+
+## Tarea 4: capa Gold
+
+Salida: `data/gold/<tabla>/data.parquet` para `dim_fecha` (3.288 filas), `dim_estacion`
+(532), `dim_usuario` (314.927) y `fact_viajes` (10.266.320, igual que `silver/viajes`).
+
+### Decisiones
+
+- **`dim_fecha` continua** del 01/01/2016 al 31/12/2024 (del primer al último día con
+  viajes), con los años intermedios aunque no tengan viajes: "período cubierto" se interpreta
+  como el intervalo completo, y así la dimensión sirve para cualquier fecha del rango.
+- **`dia_semana` con una lista propia en español** (`lunes` … `domingo`), sin depender del
+  *locale* del sistema operativo, para que el resultado sea el mismo en cualquier máquina.
+- **`dim_estacion`, nombre del año más reciente:** si en ese año la estación tiene más de un
+  nombre, queda el más usado (empate: orden alfabético). Hay 35 estaciones con nombres
+  distintos entre años. La regla de la consigna se aplica tal cual aunque a veces deja
+  nombres de mala calidad. Ejemplos: id 1 pasa de `FACULTAD DE DERECHO` (2016) a `ERRONEA`
+  (2019), e id 10 de `PUERTO MADERO - UCA` a `KP1808000368`. También indica que un mismo id
+  puede corresponder a estaciones distintas en distintos años (la fuente reutiliza ids).
+- **`primer_anio` / `ultimo_anio`** se calculan con los viajes válidos de silver (como
+  origen o destino).
+- **`rango_etario`:** `16-25`, `26-35`, `36-50`, `51+` (hasta 90, el máximo que deja silver)
+  y `DESCONOCIDO` si la edad es nula (905 usuarios).
+- **`duracion_min`** = `duracion_seg / 60` redondeado a un decimal, con tipo `Float64`
+  (acepta nulos, como `Int64`). Hay viajes de 0,0 min en 2024. No los descarta ninguna regla
+  de la consigna, así que se conservan.
+- **`es_circular`** compara los ids de estación de origen y destino, no los nombres.
+- **Tipos:** los enteros (`fecha_key`, `anio`, `mes`, `dia`, `hora_inicio`, ids) son `Int64`,
+  como en silver. Las banderas son `bool`.
+
+### Viajes con `id_usuario` que no está en `dim_usuario`
+
+| Año | Viajes | Sin id de usuario | Con id sin match | % sin match |
+|---|---:|---:|---:|---:|
+| 2016 | 503.252 | 503.252 | 0 | 0,0 |
+| 2019 | 6.207.851 | 0 | 4.410.500 | 71,0 |
+| 2024 | 3.555.217 | 0 | 1.710.135 | 48,1 |
+
+**Total: 6.120.635 viajes con id de usuario sin match** (más los 503.252 de 2016, que no traen
+id).
+
+Posible explicación: cada archivo de usuarios trae solo **las altas de ese año** (en los tres
+años, todas las `fecha_alta` caen dentro del año del archivo). Un viaje de 2019 o 2024 hecho
+por alguien que se registró otro año (2015, 2017, 2018, 2020–2023, que no se descargaron) no
+encuentra a su usuario. En 2024 se ve claro: el 100 % de los ids sin match son menores que el
+primer id dado de alta en 2024 (1.083.538), o sea que son usuarios anteriores. No es un error
+del pipeline. Esos viajes se conservan en `fact_viajes` con su `id_usuario`.
