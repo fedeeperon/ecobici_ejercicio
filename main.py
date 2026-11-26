@@ -2,6 +2,7 @@
 
 from src.bronze import ejecutar_bronze
 from src.gold import ejecutar_gold
+from src.reportes import ejecutar_reportes
 from src.silver import ejecutar_silver
 
 
@@ -12,6 +13,8 @@ def main() -> None:
     ejecutar_silver()
     print("== Gold ==")
     ejecutar_gold()
+    print("== Reportes ==")
+    ejecutar_reportes()
 
 
 if __name__ == "__main__":

@@ -36,7 +36,28 @@ data/raw/
 python main.py
 ```
 
-Genera `data/bronze/`, `data/silver/` y `data/gold/` (tarda unos 5 minutos). Se puede ejecutar todas las veces que se quiera: cada corrida
-sobrescribe el resultado anterior.
+Tarda unos 4 minutos y genera:
+
+| Carpeta | Contenido |
+|---|---|
+| `data/bronze/` | Copia fiel de los archivos en Parquet, todo como texto (`recorridos/` y `usuarios/`, una carpeta por año) |
+| `data/silver/` | `viajes`, `viajes_cuarentena`, `usuarios` y `usuarios_cuarentena` con el esquema canónico |
+| `data/gold/` | Modelo estrella: `fact_viajes`, `dim_fecha`, `dim_estacion` y `dim_usuario` |
+| `data/gold/reportes/` | Los 5 reportes en CSV |
+
+Cada capa se genera solo desde la anterior y se verifica al terminar (conciliación de
+filas, esquema, integridad referencial y controles entre reportes): si algo no cierra, el
+pipeline se detiene con un error. Se puede ejecutar todas las veces que se quiera, porque
+cada corrida sobrescribe el resultado anterior.
+
+## Estructura
+
+```
+src/bronze.py     ingesta de data/raw a bronze
+src/silver.py     esquema canónico, normalización y cuarentena
+src/gold.py       modelo estrella
+src/reportes.py   reportes en CSV
+main.py           corre todo en orden
+```
 
 Las decisiones tomadas están en `DECISIONES.md`.

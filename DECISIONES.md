@@ -240,3 +240,40 @@ por alguien que se registró otro año (2015, 2017, 2018, 2020–2023, que no se
 encuentra a su usuario. En 2024 se ve claro: el 100 % de los ids sin match son menores que el
 primer id dado de alta en 2024 (1.083.538), o sea que son usuarios anteriores. No es un error
 del pipeline. Esos viajes se conservan en `fact_viajes` con su `id_usuario`.
+
+## Tarea 5: reportes
+
+Los cinco CSV están en `data/gold/reportes/` (UTF-8, separador `,`, sin índice, punto
+decimal y sin separador de miles). Al final de cada corrida, `verificar_reportes()` controla
+que los reportes cierren entre sí (por ejemplo, que la suma de R1 sea igual a las filas de
+`fact_viajes`, o que en R5 bronze = silver + cuarentena).
+
+- **El año de los reportes 1, 2 y 4 sale de `dim_fecha`** (la fecha de inicio del viaje,
+  con `fact_viajes.fecha_key`). Coincide con el año del archivo, porque todos los viajes
+  válidos empiezan dentro de su año.
+- **Reporte 1:** solo aparecen los meses que tienen viajes. 2019 empieza en febrero porque el
+  archivo no trae viajes de enero.
+- **Reporte 2:** los empates se desempatan por id de estación (el menor primero), para que el
+  ranking sea determinístico. El nombre es el de `dim_estacion` (el del año más reciente;
+  ver Tarea 4).
+- **Reporte 3, solo viajes con usuario en `dim_usuario`** (inner join): 3.642.433 viajes. Se
+  excluyen 6.623.887 (todo 2016, porque no trae id, y los usuarios dados de alta en años no
+  descargados). Ponerlos como `DESCONOCIDO` mezclaría "no sabemos su edad" con "no sabemos
+  quién es", y el grupo pesaría más que todos los demás juntos. Los rangos y géneros
+  `DESCONOCIDO` del reporte son usuarios que sí existen pero sin edad o género (27.104 viajes
+  en el cruce `DESCONOCIDO`/`DESCONOCIDO`, casi todos de 2019).
+- **Redondeo:** un decimal en duraciones y en `porcentaje_circulares`, y dos en
+  `porcentaje_cuarentena`, como en los ejemplos del enunciado.
+- **Reporte 5:** solo cuenta recorridos (los usuarios tienen su propia conciliación en
+  silver). Toma las filas de bronze de los metadatos del Parquet, sin leer los datos.
+
+### Lectura de los resultados
+
+- **Cuarentena:** 15,68 % en 2016 (viajes sin fecha de fin), 0,15 % en 2019 y 0,11 % en 2024.
+- **Top 10:** `CONSTITUCIÓN` es la primera en 2019 y en 2024. `PACIFICO`, `PLAZA ITALIA` y
+  `CONGRESO` aparecen los tres años. En 2016 el ranking muestra `ERRONEA` y `KP1808000368`:
+  son estaciones reales de 2016 (`FACULTAD DE DERECHO` y `PUERTO MADERO - UCA`) que muestran
+  el nombre que tuvo ese id en 2019, por la regla del nombre más reciente.
+- **Viajes circulares:** entre 10 % y 13,5 % según el año.
+- **Duración:** en todos los rangos etarios, los hombres hacen viajes más cortos en promedio
+  que las mujeres y que `OTRO`.
